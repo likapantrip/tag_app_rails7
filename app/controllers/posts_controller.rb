@@ -26,20 +26,19 @@ class PostsController < ApplicationController
     @post_form.tag_name = @post.tags.first&.tag_name
   end
 
-  def update(params, post)
-    #一度タグの紐付けを消す
-    post.post_tag_relations.destroy_all
+  def update
+    # paramsの内容を反映したインスタンスを生成する
+    @post_form = PostForm.new(post_form_params)
 
-    #paramsの中のタグの情報を削除。同時に、返り値としてタグの情報を変数に代入
-    tag_name = params.delete(:tag_name)
+    # 画像を選択し直していない場合は、既存の画像をセットする
+    @post_form.image ||= @post.image.blob
 
-    #もしタグの情報がすでに保存されていればインスタンスを取得、無ければインスタンスを新規作成
-    tag = Tag.where(tag_name: tag_name).first_or_initialize if tag_name.present?
-
-    #タグを保存
-    tag.save if tag_name.present?
-    post.update(params)
-    PostTagRelation.create(post_id: post.id, tag_id: tag.id) if tag_name.present?
+    if @post_form.valid?
+      @post_form.update(post_form_params, @post)
+      redirect_to root_path
+    else
+      render :edit, status: :unprocessable_entity
+    end
   end
 
   private
